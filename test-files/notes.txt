@@ -1,0 +1,68 @@
+
+one.mol:
+
+mode: cut
+speed: 150.00
+power: 10.0
+Output: ticked
+Times: 1
+
+two.mol:
+
+mode: cut
+speed: 150.00
+power: 20.0
+Output: ticked
+Times: 1
+
+three.mol:
+
+mode: cut
+speed: 100.00
+power: 20.0
+Output: ticked
+Times: 1
+
+four.mol:
+
+mode: cut
+speed: 50.00
+power: 20.0
+Output: ticked
+Times: 1
+
+five.mol:
+
+Two parallel lines, same dimensions as square
+Each line is on a different layer with the same
+parameters for each layer.
+
+
+six.mol:
+
+Two parallel lines, same dimensions as square
+Each line is on the same layer.
+
+seven.mol:
+
+mode: cut
+speed: 150.00
+power: 10.0
+Output: ticked
+Times: 1
+
+eight.mol:
+
+mode: cut
+speed: 150.00
+power: 10.001
+Output: ticked
+Times: 1
+
+nine.mol:
+
+mode: cut
+speed: 150.00
+power: 10.01
+Output: ticked
+Times: 1
