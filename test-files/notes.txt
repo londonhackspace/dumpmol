@@ -1,4 +1,8 @@
 square_mol_files
+There are a large number of 1cm squares as the laser cutter software
+doesn't seem to generate consistent .mols based on the same input
+the main differences seem to be single bit 0X <-> 4X changes 
+(at the start of commands?) as well as 02 <-> 07 changes (in payloads?)
 contains assorted nXn (n given in name) cm squares cut using 
 (default import position on software: centre)
 speed: 3.00
@@ -13,6 +17,15 @@ speed: 3.00
 power 100
 output: ticked
 times: 1
+
+LINEONE.mol:
+1cm line
+(default import position on software: centre)
+speed: 3.00
+power 100
+output: ticked
+times: 1
+
 
 one.mol:
 
