@@ -12,34 +12,27 @@ tbs = {}
 nullqs = {}
 bis = {}
 tris = {}
+qgrams = {}
 
-def update_stats(a,b,nq):
-  if a not in tas:
-    tas[a] = 1
+def update_a_stat(d, k):
+  if k not in d:
+    d[k] = 1
   else:
-    tas[a] += 1
+    d[k] += 1
+  
+def update_stats(a, b, nq, s):
+  update_a_stat(tas, a)
+  update_a_stat(tbs, b)
+  update_a_stat(nullqs, nq)
 
-  if b not in tbs:
-    tbs[b] = 1
-  else:
-    tbs[b] += 1
-
-  if nq not in nullqs:
-    nullqs[nq] = 1
-  else:
-    nullqs[nq] += 1
-    
   bkey = "%02x %02x" % (a, b)
-  if bkey not in bis:
-    bis[bkey] = 1
-  else:
-    bis[bkey] += 1
+  update_a_stat(bis, bkey)
 
   trikey = "%02x %02x %02x" % (a, b, nq)
-  if trikey not in tris:
-    tris[trikey] = 1
-  else:
-    tris[trikey] += 1
+  update_a_stat(tris, trikey)
+
+  qkey = "%02x %02x %02x %02x" % (a, b, nq, s)
+  update_a_stat(qgrams, qkey)
 
 def sort_n_dump(d):
   ks = d.keys()
@@ -62,7 +55,7 @@ def chunker(blob, prepend, startpos):
       break
     print "%02x %02x %02x %02x" % (typea, typeb, nullqq, size)
 
-    update_stats(typea, typeb, nullqq)
+    update_stats(typea, typeb, nullqq, size)
 
     hexdump(blob[off:off + 4 + (size * 4)], prepend, startpos + off)
     if typeb == 9:
@@ -111,5 +104,6 @@ if __name__ == "__main__":
   print "trigrams"
   sort_n_dump(tris)
 
-
+  print "qgrams"
+  sort_n_dump(qgrams)
 
