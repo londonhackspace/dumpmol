@@ -5,6 +5,8 @@
 # implemented a couple of useful functions for displaying binary data.
 #
 
+import sys
+
 def tobin(i):
 	"""Convert an int to a binary
 	
@@ -107,6 +109,13 @@ def hexdump(str, prepend = '', start = 0):
 
 
 if __name__ == "__main__":
+	if len(sys.argv) > 1:
+		fh = open(sys.argv[1], 'rb')
+		blob = fh.read(1024 * 1024 * 1024) # silly
+		hexdump(blob)
+		fh.close()
+		sys.exit()
+
 	s = "lksdhfkahsdflakhjsdflahfalsdfakhfdw98345\000\001\006\077$%$^%$%"
 	hexdump(s, "%% ")
 	hexdump(s, '', 90)
