@@ -18,3 +18,8 @@ build/
 laser_fiddle_out.txt
 laserlaser_fiddle_out.txt
 triangle_fiddle_out.txt
+1cm_circle_fiddle_out.txt
+2cm_circle_fiddle_out.txt
+4cm_circle_fiddle_out.txt
+test-files/circle_mol_files/.DS_Store
+
