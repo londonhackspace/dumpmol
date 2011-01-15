@@ -5,3 +5,16 @@ dist/
 build/
 .hgrc
 *.swp
+
+12diff.txt
+14diff.txt
+1x1cm_2_fiddle_out.txt
+1x1cm_3_fiddle_out.txt
+1x1cm_4_fiddle_out.txt
+1x1cm_fiddle_out.txt
+24diff.txt
+2x2cm_fiddle_out.txt
+4x4cm_fiddle_out.txt
+laser_fiddle_out.txt
+laserlaser_fiddle_out.txt
+triangle_fiddle_out.txt
