@@ -79,37 +79,50 @@ def chunker(blob, prepend, startpos, stats=True):
   
   while off < len(blob):
     typea, typeb, nullqq, size = unpack('BBBB', blob[off: off + 4])
-#    if typea == typeb == nullqq == size == 0:
-#      break
 
     print "%02x %02x %02x %02x" % (typea, typeb, nullqq, size)
 
-    if stats:
-      update_stats(typea, typeb, nullqq, size)
-
     if (typea, typeb, nullqq, size) == (0x48, 0x01, 0x60, 0x80):
-      print "XXX size fixup, 0x%02x (%d) -> 10" % (size, size)
-      size = 10
+      new_size = unpack("<I", blob[off+4:off+8])[0]
+      print "XXX size fixup, 0x%02x (%d) -> %d" % (size, size, new_size + 1)
+      size = new_size + 1
+
+    if (typea, typeb, nullqq, size) == (0x46, 0x09, 0x00, 0x80):
+#      new_size = unpack("<I", blob[off+4:off+8])[0]
+      new_size = 0
+      print "XXX size fixup, 0x%02x (%d) -> %d" % (size, size, new_size + 1)
+      size = new_size + 1
+
+
+    if (typea, typeb, nullqq) == (0x46, 0x0e, 0x00):
+      print "laser power control",
+      args = blob[off+4:off + 8 + (size * 4)]
+      power = args[0:8]
+      power = unpack("II", power)
+      power = [p / 100.0 for p in power]
+      print power
+      hexdump(args, prepend, startpos + off)
 
     if (typea, typeb, nullqq, size) == (0x48, 0x00, 0x30, 0x01):
       section = unpack('I', blob[off + 4:off + 8])[0]
       print "start section %d" % (section)
-      # keep stats about the start of the section
+#      hexdump(blob[off+8:off+8+128])
+#      break
       if prepend == None:
         prepend = 's%d>' % (section)
 
     if (typea, typeb, nullqq, size) == (0x48, 0x00, 0x40, 0x01):
       print "end section %d at 0x%04x" % (unpack('I', blob[off + 4:off + 8])[0], startpos + off+8)
-      # append the addr of the end of the section
       off += 4
       off += size * 4
       break
-    
+
     if size > 0:
       hexdump(blob[off:off + 4 + (size * 4)], prepend, startpos + off)
 
-#    if typeb == 9:
-#      chunker(blob[off+8:off + (size * 4)], prepend + '*> ', startpos + off + 8)
+    if stats:
+      update_stats(typea, typeb, nullqq, size)
+    
     off += 4
     off += size * 4
 
@@ -132,7 +145,7 @@ if __name__ == "__main__":
   # header stuff?
   print "header:"
   header = blob[0:512]
-  hexdump(header, 'header ', 0)
+#  hexdump(header, 'header ', 0)
   print "sections at:",
   sections = unpack("4I", header[0x70:0x70 + (4*4)])
   print sections,
@@ -153,7 +166,7 @@ if __name__ == "__main__":
   #
   for i,s in enumerate(sections[1:]):
     print "Section %d: offset: %d (0x%04x)" % (i, s, s * 512) 
-    end = chunker(blob[s * 512:], None, s * 512)
+    end = chunker(blob[s * 512:], '', s * 512)
 #    next = ((end / 512) + 1) * 512
 
 
