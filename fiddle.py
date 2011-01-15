@@ -34,61 +34,7 @@ def update_stats(a, b, nq, s):
   qkey = "%02x %02x %02x %02x" % (a, b, nq, s)
   update_a_stat(qgrams, qkey)
 
-def sort_n_dump(d):
-  ks = d.keys()
-  print "len", len(ks)
-  ks.sort(cmp=lambda x,y: cmp(d[x], d[y]))
-  for k in ks:
-    if type(k) == type(42):
-      print "%02x (%d): %d" % (k, k, d[k])
-    else:
-      print "%s: %s" % (k, d[k])
-  
-  print
-
-def chunker(blob, prepend, startpos):
-  off = 0
-  
-  while off < len(blob):
-    typea, typeb, nullqq, size = unpack('BBBB', blob[off: off + 4])
-    if typea == typeb == nullqq == size == 0:
-      break
-    print "%02x %02x %02x %02x" % (typea, typeb, nullqq, size)
-
-    update_stats(typea, typeb, nullqq, size)
-
-    hexdump(blob[off:off + 4 + (size * 4)], prepend, startpos + off)
-    if typeb == 9:
-      chunker(blob[off+8:off + (size * 4)], prepend + '*> ', startpos + off + 8)
-    off += 4
-    off += size * 4
-
-if __name__ == "__main__":
-  if len(sys.argv) != 2:
-    print "%s: <filename.mol>" % (sys.argv[0])
-  
-  filename = sys.argv[1]
-
-  fh = open(filename, 'rb')
-  s = os.stat(filename)
-  filesize = s.st_size
-
-  blob = fh.read(filesize)
-  
-  fh.close()
-  
-  # something at 0x200
-
-  stuff = blob[0x200:0x200 + 512]
-
-  chunker(stuff, 'H>', 0x200)
-  
-  # start at offset 0x400
-  # of 0xa00 ...
-  things = blob[0xa00:]
-  
-  chunker(things, '', 0xa00)
-
+def dump_stats():
   print "typea:"
   sort_n_dump(tas)
 
@@ -107,3 +53,111 @@ if __name__ == "__main__":
   print "qgrams"
   sort_n_dump(qgrams)
 
+
+
+def sort_n_dump(d):
+  ks = d.keys()
+  print "len", len(ks)
+  ks.sort(cmp=lambda x,y: cmp(d[x], d[y]))
+  for k in ks:
+    if type(k) == type(42):
+      print "%02x (%d): %d" % (k, k, d[k])
+    else:
+      print "%s: %s" % (k, d[k])
+  
+  print
+  
+  ks.sort(cmp=lambda x,y: cmp(x, y))
+  for k in ks:
+    if type(k) == type(42):
+      print "%02x (%d): %d" % (k, k, d[k])
+    else:
+      print "%s: %s" % (k, d[k])
+
+def chunker(blob, prepend, startpos, stats=True):
+  off = 0
+  
+  while off < len(blob):
+    typea, typeb, nullqq, size = unpack('BBBB', blob[off: off + 4])
+#    if typea == typeb == nullqq == size == 0:
+#      break
+
+    print "%02x %02x %02x %02x" % (typea, typeb, nullqq, size)
+
+    if stats:
+      update_stats(typea, typeb, nullqq, size)
+
+    if (typea, typeb, nullqq, size) == (0x48, 0x01, 0x60, 0x80):
+      size = 0
+
+    if (typea, typeb, nullqq, size) == (0x48, 0x00, 0x30, 0x01):
+      section = unpack('I', blob[off + 4:off + 8])[0]
+      print "start section %d" % (section)
+      # keep stats about the start of the section
+      if prepend == None:
+        prepend = 's%d>' % (section)
+
+    if (typea, typeb, nullqq, size) == (0x48, 0x00, 0x40, 0x01):
+      print "end section %d" % (unpack('I', blob[off + 4:off + 8])[0])
+      # append the addr of the end of the section
+      off += 4
+      off += size * 4
+      break
+    
+    if size > 0:
+      hexdump(blob[off:off + 4 + (size * 4)], prepend, startpos + off)
+
+#    if typeb == 9:
+#      chunker(blob[off+8:off + (size * 4)], prepend + '*> ', startpos + off + 8)
+    off += 4
+    off += size * 4
+
+  print "end: 0x%04x" % (startpos + off)
+  return startpos + off
+
+if __name__ == "__main__":
+  if len(sys.argv) != 2:
+    print "%s: <filename.mol>" % (sys.argv[0])
+  
+  filename = sys.argv[1]
+
+  fh = open(filename, 'rb')
+  s = os.stat(filename)
+  filesize = s.st_size
+
+  blob = fh.read(filesize)
+  
+  fh.close()
+
+  # header stuff?
+  print "header:"
+  header = blob[0:512]
+  hexdump(header, 'header ', 0)
+  print "sections at:",
+  sections = unpack("4I", header[0x70:0x70 + (4*4)])
+  print sections,
+  print ["%04x" % (s * 512) for s in sections]
+  print
+  
+  # something at 0x200
+
+  print "next stuff:"
+  stuff = blob[0x200:0x200 + 512]
+  hexdump(stuff, 'header2 ', 0x200)
+  print
+
+  # start at offset 0x400
+  #
+  # won't work with long .mol files, need to find out how the
+  # section lengths work.
+  #
+  next = 0x400
+
+  while next < len(blob):
+    end = chunker(blob[next:], None, next)
+    next = ((end / 512) + 1) * 512
+
+
+#  dump_stats()
+
+  
