@@ -88,7 +88,8 @@ def chunker(blob, prepend, startpos, stats=True):
       update_stats(typea, typeb, nullqq, size)
 
     if (typea, typeb, nullqq, size) == (0x48, 0x01, 0x60, 0x80):
-      size = 0
+      print "XXX size fixup, 0x%02x (%d) -> 10" % (size, size)
+      size = 10
 
     if (typea, typeb, nullqq, size) == (0x48, 0x00, 0x30, 0x01):
       section = unpack('I', blob[off + 4:off + 8])[0]
@@ -98,7 +99,7 @@ def chunker(blob, prepend, startpos, stats=True):
         prepend = 's%d>' % (section)
 
     if (typea, typeb, nullqq, size) == (0x48, 0x00, 0x40, 0x01):
-      print "end section %d" % (unpack('I', blob[off + 4:off + 8])[0])
+      print "end section %d at 0x%04x" % (unpack('I', blob[off + 4:off + 8])[0], startpos + off+8)
       # append the addr of the end of the section
       off += 4
       off += size * 4
@@ -112,7 +113,6 @@ def chunker(blob, prepend, startpos, stats=True):
     off += 4
     off += size * 4
 
-  print "end: 0x%04x" % (startpos + off)
   return startpos + off
 
 if __name__ == "__main__":
@@ -151,11 +151,10 @@ if __name__ == "__main__":
   # won't work with long .mol files, need to find out how the
   # section lengths work.
   #
-  next = 0x400
-
-  while next < len(blob):
-    end = chunker(blob[next:], None, next)
-    next = ((end / 512) + 1) * 512
+  for i,s in enumerate(sections[1:]):
+    print "Section %d: offset: %d (0x%04x)" % (i, s, s * 512) 
+    end = chunker(blob[s * 512:], None, s * 512)
+#    next = ((end / 512) + 1) * 512
 
 
 #  dump_stats()
