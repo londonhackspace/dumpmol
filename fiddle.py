@@ -11,6 +11,7 @@ tas = {}
 tbs = {}
 nullqs = {}
 bis = {}
+tris = {}
 
 def update_stats(a,b,nq):
   if a not in tas:
@@ -34,6 +35,12 @@ def update_stats(a,b,nq):
   else:
     bis[bkey] += 1
 
+  trikey = "%02x %02x %02x" % (a, b, nq)
+  if trikey not in tris:
+    tris[trikey] = 1
+  else:
+    tris[trikey] += 1
+
 def sort_n_dump(d):
   ks = d.keys()
   print "len", len(ks)
@@ -51,7 +58,9 @@ def chunker(blob, prepend, startpos):
   
   while off < len(blob):
     typea, typeb, nullqq, size = unpack('BBBB', blob[off: off + 4])
-    print typea, typeb, nullqq, size
+    if typea == typeb == nullqq == size == 0:
+      break
+    print "%02x %02x %02x %02x" % (typea, typeb, nullqq, size)
 
     update_stats(typea, typeb, nullqq)
 
@@ -60,8 +69,6 @@ def chunker(blob, prepend, startpos):
       chunker(blob[off+8:off + (size * 4)], prepend + '*> ', startpos + off + 8)
     off += 4
     off += size * 4
-    
-  
 
 if __name__ == "__main__":
   if len(sys.argv) != 2:
@@ -100,4 +107,9 @@ if __name__ == "__main__":
 
   print "bigrams"
   sort_n_dump(bis)
+
+  print "trigrams"
+  sort_n_dump(tris)
+
+
 
