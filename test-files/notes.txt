@@ -1,3 +1,18 @@
+square_mol_files
+contains assorted nXn (n given in name) cm squares cut using 
+(default import position on software: centre)
+speed: 3.00
+power 100
+output: ticked
+times: 1
+
+circles_mol_files
+contains assorted circles (diameter given in name)
+(default import position on software: centre)
+speed: 3.00
+power 100
+output: ticked
+times: 1
 
 one.mol:
 
