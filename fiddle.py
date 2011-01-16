@@ -73,6 +73,53 @@ def sort_n_dump(d):
       print "%02x (%d): %d" % (k, k, d[k])
     else:
       print "%s: %s" % (k, d[k])
+      
+def dewrapper(blob, prepend, startpos):
+    """
+    This looks for the string : 
+    01 46 00 01 | 0X 00 00 00 | 01 03 00 03 | 00 00 YY 09
+    where X is either 1 or 2 and YY is either 34 or 48
+    in wrapper sections then prints what follows. These 
+    sections seem to come in pairs (a 1 followed by a 2)
+    they also seem to carry fairly similar payloads
+    """
+    off = 96 # the first 3 32b words are copied directly
+    if len(blob) < 96:
+        hexdump(blob, '*')
+        return
+        
+    current_four = [0,] + list(unpack('>III',blob[startpos: off]))
+    count = 1
+    section = 0
+    
+    while off < len(blob):
+        val = current_four.pop
+        out += "%08x " % val if val else ''
+        if (count % 4 == 0): out += ' |'
+        
+        current_four.append(unpack('>I', blob[off:off + 32])[0])
+        
+        if current_four == (0x01460001,0x01000000,0x01030003,0x00003409) or
+        current_four == (0x01460001,0x02000000,0x01030003,0x00003409) or
+        current_four == (0x01460001,0x01000000,0x01030003,0x00004809) or
+        current_four == (0x01460001,0x02000000,0x01030003,0x00004809):
+            print out
+            print "="*40
+            print "Subsection %d at position %04x" % (section, startpos + off) 
+            print "%08x %08x %08x %08x" % current_four
+            current_four = [None, None, None, None,]
+            out = '%04x : ' % startpos + off + 32
+            count = 0
+            section += 1
+        
+        count += 1
+        off += 32
+        
+    
+
+            
+            
+
 
 def chunker(blob, prepend, startpos, stats=True):
   off = 0
