@@ -74,7 +74,7 @@ def sort_n_dump(d):
     else:
       print "%s: %s" % (k, d[k])
       
-def dewrapper(blob, prepend, startpos):
+def dewrapper(blob, prepend='', startpos=0):
     """
     This looks for the string : 
     01 46 00 01 | 0X 00 00 00 | 01 03 00 03 | 00 00 YY 09
@@ -83,47 +83,38 @@ def dewrapper(blob, prepend, startpos):
     sections seem to come in pairs (a 1 followed by a 2)
     they also seem to carry fairly similar payloads
     """
-    off = 96 # the first 3 32b words are copied directly
-    if len(blob) < 96:
+    off = 12 # the first 3 32b words are copied directly
+    if len(blob) < 12:
         hexdump(blob, '*')
         return
-        
-    current_four = [0,] + list(unpack('>III',blob[startpos: off]))
-    count = 1
+    
+    print str(startpos) + " " + str(off)
+    current_four = [0,] + list(unpack('>III', blob[:off]))
     section = 0
+    current_start = 0
     
     while off < len(blob):
-        val = current_four.pop
-        out += "%08x " % val if val else ''
-        if (count % 4 == 0): out += ' |'
+        current_four.pop(0)
+        current_four.append(unpack('>I', blob[off:off + 4])[0])
+                # 
+                # print current_four
         
-        current_four.append(unpack('>I', blob[off:off + 32])[0])
-        
-        if current_four == (0x01460001,0x01000000,0x01030003,0x00003409) or
-        current_four == (0x01460001,0x02000000,0x01030003,0x00003409) or
-        current_four == (0x01460001,0x01000000,0x01030003,0x00004809) or
-        current_four == (0x01460001,0x02000000,0x01030003,0x00004809):
-            print out
-            print "="*40
-            print "Subsection %d at position %04x" % (section, startpos + off) 
-            print "%08x %08x %08x %08x" % current_four
-            current_four = [None, None, None, None,]
-            out = '%04x : ' % startpos + off + 32
-            count = 0
+        if current_four == [0x01460001,0x01000000,0x01030003,0x00003409] or \
+        current_four == [0x01460001,0x02000000,0x01030003,0x00003409] or \
+        current_four == [0x01460001,0x01000000,0x01030003,0x00004809] or \
+        current_four == [0x01460001,0x02000000,0x01030003,0x00004809]:
+            hexdump(blob[current_start: off - 12], "w%d." % section, startpos + current_start)
+            current_start = off + 4 # where the next block starts 
+            print "%08x %08x %08x %08x" % (current_four[0],current_four[1], current_four[2], current_four[3])
+            print "Subsection %d at position %04x" % (section, current_start)
+            current_four = [None, None, None, None]
             section += 1
         
-        count += 1
-        off += 32
+        off += 4
+
         
-    
-
-            
-            
-
-
 def chunker(blob, prepend, startpos, stats=True):
   off = 0
-  prepend_i = prepend # prepend_i can be cahnged as needed
   
   while off < len(blob):
     typea, typeb, nullqq, size = unpack('BBBB', blob[off: off + 4])
@@ -139,10 +130,9 @@ def chunker(blob, prepend, startpos, stats=True):
     # to define how many words are wrapped (eg 0x50 or more)
     if (typea, typeb, nullqq, size) == (0x46, 0x09, 0x00, 0x80):
       new_size = unpack("<I", blob[off+4:off+8])[0]
-      print "XXX size fixup, 0x%02x (%d) -> %d" % (new_size, new_size, new_size + 1)
-      off = off+8
-      size = new_size - 1       # '-1' accounts for the additional offset in the hexdump below
-      prepend_i = 'w'
+      print "Wrapper section, size: 0x%02x (%d) -> %d" % (new_size, new_size, new_size + 1)   
+      dewrapper(blob[off + 8: off + (new_size*4)], "w", startpos + off)
+      off = off + (new_size - 1)*4 # another 4 will be added at bottom
 
 
     if (typea, typeb, nullqq) == (0x46, 0x0e, 0x00):
@@ -170,8 +160,7 @@ def chunker(blob, prepend, startpos, stats=True):
       break
 
     if size > 0:
-      hexdump(blob[off:off + 4 + (size * 4)], prepend_i, startpos + off)
-      prepend_i = prepend
+      hexdump(blob[off:off + 4 + (size * 4)], prepend, startpos + off)
 
     if stats:
       update_stats(typea, typeb, nullqq, size)
