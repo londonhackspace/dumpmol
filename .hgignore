@@ -3,7 +3,6 @@ syntax: glob
 *~
 dist/
 build/
-.hgrc
 *.swp
 
 12diff.txt
