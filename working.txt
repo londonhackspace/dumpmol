@@ -146,4 +146,10 @@ Bus 002 Device 005: ID 0548:1005 Tyan Computer Corp. EZ Cart II GameBoy Flash Pr
 4 x ints at 0x70 are section header block offsets.
 
 -------------------------------------------------------------------------------
+ms7821: also, if anyone can be bothered, compile the gcc 4.2 version of
+binutils and objdump the firmware as tms320c4x c3
+ms7821: it's vc33, which is basically identical to a c31
+ms7821: and gcc calls that c3
+
+-------------------------------------------------------------------------------
 
