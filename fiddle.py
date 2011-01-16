@@ -93,7 +93,8 @@ def chunker(blob, prepend, startpos, stats=True):
     if (typea, typeb, nullqq, size) == (0x46, 0x09, 0x00, 0x80):
       new_size = unpack("<I", blob[off+4:off+8])[0]
       print "XXX size fixup, 0x%02x (%d) -> %d" % (new_size, new_size, new_size + 1)
-      size = new_size + 1
+      off = off+8
+      size = new_size - 1       # '-1' accounts for the additional offset in the hexdump below
       prepend_i = 'w'
 
 
