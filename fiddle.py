@@ -76,6 +76,7 @@ def sort_n_dump(d):
 
 def chunker(blob, prepend, startpos, stats=True):
   off = 0
+  prepend_i = prepend # prepend_i can be cahnged as needed
   
   while off < len(blob):
     typea, typeb, nullqq, size = unpack('BBBB', blob[off: off + 4])
@@ -84,14 +85,16 @@ def chunker(blob, prepend, startpos, stats=True):
 
     if (typea, typeb, nullqq, size) == (0x48, 0x01, 0x60, 0x80):
       new_size = unpack("<I", blob[off+4:off+8])[0]
-      print "XXX size fixup, 0x%02x (%d) -> %d" % (size, size, new_size + 1)
+      print "XXX size fixup, 0x%02x (%d) -> %d" % (new_size, new_size, new_size + 1)
       size = new_size + 1
 
+    # this seems to start a wrapper section; the next 32bit word seem
+    # to define how many words are wrapped (eg 0x50 or more)
     if (typea, typeb, nullqq, size) == (0x46, 0x09, 0x00, 0x80):
-#      new_size = unpack("<I", blob[off+4:off+8])[0]
-      new_size = 0
-      print "XXX size fixup, 0x%02x (%d) -> %d" % (size, size, new_size + 1)
+      new_size = unpack("<I", blob[off+4:off+8])[0]
+      print "XXX size fixup, 0x%02x (%d) -> %d" % (new_size, new_size, new_size + 1)
       size = new_size + 1
+      prepend_i = 'w'
 
 
     if (typea, typeb, nullqq) == (0x46, 0x0e, 0x00):
@@ -113,12 +116,14 @@ def chunker(blob, prepend, startpos, stats=True):
 
     if (typea, typeb, nullqq, size) == (0x48, 0x00, 0x40, 0x01):
       print "end section %d at 0x%04x" % (unpack('I', blob[off + 4:off + 8])[0], startpos + off+8)
+      print "="*40 + "\n"
       off += 4
       off += size * 4
       break
 
     if size > 0:
-      hexdump(blob[off:off + 4 + (size * 4)], prepend, startpos + off)
+      hexdump(blob[off:off + 4 + (size * 4)], prepend_i, startpos + off)
+      prepend_i = prepend
 
     if stats:
       update_stats(typea, typeb, nullqq, size)
