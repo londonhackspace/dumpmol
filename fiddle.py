@@ -117,23 +117,58 @@ def chunker(blob, prepend, startpos, stats=True):
   off = 0
   
   while off < len(blob):
+    dump = True
     typea, typeb, nullqq, size = unpack('BBBB', blob[off: off + 4])
 
     print "%02x %02x %02x %02x" % (typea, typeb, nullqq, size)
 
-    if (typea, typeb, nullqq, size) == (0x48, 0x01, 0x60, 0x80):
+    if size == 0x80 and (typea, typeb) != (0x46, 0x09) :
+      # next word is actual size
       new_size = unpack("<I", blob[off+4:off+8])[0]
-      print "XXX size fixup, 0x%02x (%d) -> %d" % (new_size, new_size, new_size + 1)
-      size = new_size + 1
-
-    # this seems to start a wrapper section; the next 32bit word seem
-    # to define how many words are wrapped (eg 0x50 or more)
+      print "size fixup: 0x%02x (%d) -> %d" % (size, size, new_size)
+      size = new_size + 1 # to take into account of the size word it's self.
+    
+    # this might actually be typeb == 0x09 only, thats how i used
+    # to have it (iirc).
     if (typea, typeb, nullqq, size) == (0x46, 0x09, 0x00, 0x80):
-      new_size = unpack("<I", blob[off+4:off+8])[0]
-      print "Wrapper section, size: 0x%02x (%d) -> %d" % (new_size, new_size, new_size + 1)   
-      dewrapper(blob[off + 8: off + (new_size*4)], "w", startpos + off)
-      off = off + (new_size - 1)*4 # another 4 will be added at bottom
+      new_size = unpack("<I", blob[off+4:off+8])[0] + 1
+      print "size fixup: 0x%02x (%d) -> %d" % (size, size, new_size)
+      size = new_size
+      print "="*35 + " starts " + "="*35 + "\n"
+      chunker(blob[off + 8:off + 8 + (new_size * 4) - 4], 's>' + prepend, startpos + off + 8)
+      print "="*35 + "  ends  " + "="*35 + "\n"
+      dump = False
 
+    # for section 0 (starts at 0x200) we don't know how to end
+    # for the moment just stop parsing when we hit all zeros
+    #
+    # 48 06 20 00 <-- might be "end of section 0"
+    #
+    if (typea, typeb, nullqq, size) == (0,0,0,0):
+      break
+
+    if (typea, typeb, nullqq, size) ==  (0x00, 0x60, 0x02, 0x03):
+      # word 2 or 3 changes with speed changes
+      print "speed related"
+
+    if (typea, typeb, nullqq, size) == (0x01, 0x03, 0x00, 0x03):
+      # word 3 or 2 and 3 change
+      print "speed related"
+
+    if (typea, typeb) == (0x06, 0x06):
+      print "mc_set_laser_mode??"
+
+    if (typea, typeb) == (0x01, 0x46):
+      print "mc_set_ramp_flag??"
+
+    if (typea, typeb) == (0x01, 0x03):
+      print "mc_set_vector_profile??"
+
+    if (typea, typeb) == (0x00, 0x60):
+      print "mc_fast_line2??"
+
+    if (typea, typeb) == (0x06, 0x0b):
+      print "mc_set_common_IO??"
 
     if (typea, typeb, nullqq) == (0x46, 0x0e, 0x00):
       print "laser power control",
@@ -142,24 +177,22 @@ def chunker(blob, prepend, startpos, stats=True):
       power = unpack("II", power)
       power = [p / 100.0 for p in power]
       print power
-      hexdump(args, prepend, startpos + off)
+#      hexdump(args, prepend, startpos + off)
 
     if (typea, typeb, nullqq, size) == (0x48, 0x00, 0x30, 0x01):
       section = unpack('I', blob[off + 4:off + 8])[0]
       print "start section %d" % (section)
-#      hexdump(blob[off+8:off+8+128])
-#      break
       if prepend == None:
         prepend = 's%d>' % (section)
 
     if (typea, typeb, nullqq, size) == (0x48, 0x00, 0x40, 0x01):
       print "end section %d at 0x%04x" % (unpack('I', blob[off + 4:off + 8])[0], startpos + off+8)
-      print "="*40 + "\n"
+      print "="*75 + "\n"
       off += 4
       off += size * 4
       break
 
-    if size > 0:
+    if size > 0 and dump:
       hexdump(blob[off:off + 4 + (size * 4)], prepend, startpos + off)
 
     if stats:
@@ -187,7 +220,7 @@ if __name__ == "__main__":
   # header stuff?
   print "header:"
   header = blob[0:512]
-#  hexdump(header, 'header ', 0)
+  hexdump(header, 'header ', 0)
   print "sections at:",
   sections = unpack("4I", header[0x70:0x70 + (4*4)])
   print sections,
@@ -196,18 +229,18 @@ if __name__ == "__main__":
   
   # something at 0x200
 
-  print "next stuff:"
-  stuff = blob[0x200:0x200 + 512]
-  hexdump(stuff, 'header2 ', 0x200)
-  print
+#  print "next stuff:"
+#  stuff = blob[0x200:0x200 + 512]
+##  hexdump(stuff, 'header2 ', 0x200)
+#  print
 
   # start at offset 0x400
   #
   # won't work with long .mol files, need to find out how the
   # section lengths work.
   #
-  for i,s in enumerate(sections[1:]):
-    print "Section %d: offset: %d (0x%04x)" % (i, s, s * 512) 
+  for i,s in enumerate(sections):
+    print "Section %d: offset: %d (0x%04x)" % (i + 1, s, s * 512) 
     end = chunker(blob[s * 512:], '', s * 512)
 #    next = ((end / 512) + 1) * 512
 
