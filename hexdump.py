@@ -53,8 +53,9 @@ def hexdump(str, prepend = '', start = 0):
 
     print "%s" % (' ' * (len(prepend) + 6)),
     for i in range(start % indent, indent):
-#   for i in range(0, indent):
-        print "%02x" % (i),
+        print "%02x" % (i), 
+        if (i+1) % 4 == 0 and i > 0:
+            print "|",
     if start != 0:
         for i in range(0, start % indent):
             print "%02x" % (i),
